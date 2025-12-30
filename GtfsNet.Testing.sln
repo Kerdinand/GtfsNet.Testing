@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GtfsNet.Testing", "GtfsNet.Testing\GtfsNet.Testing.csproj", "{CE78CF0A-3EAE-4532-BC02-C381917B6F71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GtfsNet", "..\GtfsNet\GtfsNet\GtfsNet.csproj", "{65299B22-6C28-4181-9B8E-D4BD7F798F7A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GtfsNet.Routing", "GtfsNet.Routing\GtfsNet.Routing.csproj", "{BADD4B02-3C6C-490E-A2B3-5BBC8AFF8EB9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE78CF0A-3EAE-4532-BC02-C381917B6F71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE78CF0A-3EAE-4532-BC02-C381917B6F71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE78CF0A-3EAE-4532-BC02-C381917B6F71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE78CF0A-3EAE-4532-BC02-C381917B6F71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65299B22-6C28-4181-9B8E-D4BD7F798F7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65299B22-6C28-4181-9B8E-D4BD7F798F7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65299B22-6C28-4181-9B8E-D4BD7F798F7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65299B22-6C28-4181-9B8E-D4BD7F798F7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BADD4B02-3C6C-490E-A2B3-5BBC8AFF8EB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BADD4B02-3C6C-490E-A2B3-5BBC8AFF8EB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BADD4B02-3C6C-490E-A2B3-5BBC8AFF8EB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BADD4B02-3C6C-490E-A2B3-5BBC8AFF8EB9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
