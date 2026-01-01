@@ -1,4 +1,7 @@
+using System.Globalization;
+using CsvHelper;
 using GtfsNet.Enum;
+using GtfsNet.Factories;
 using GtfsNet.OSM;
 using GtfsNet.OSM.Graph;
 using GtfsNet.OSM.KdTree;
@@ -80,7 +83,7 @@ public class Util
         Console.WriteLine("Cleared unused dicts");
         var graph = OsmGraphFactory.BuilCustomOsmGraph(streetNodes, streetEdges);
         Console.WriteLine("Graph contains " + graph.EdgeCount + " edges");
-        osm.SetClosestOsmNodeForGtfsStops(graph.Nodes.Values.ToList(), feed.Stops);
+        osm.SetClosestOsmNodeForGtfsStops(streetEdges, streetNodes, feed.Stops, false);
         DijkstraManager.Initialize(graph, (byte)Environment.ProcessorCount);
         int counter = 0;
         var allStopIds = osm.GetAllBusStopPairs().Values
@@ -102,7 +105,8 @@ public class Util
             {
                 if (!(task == null || task.Count == 0 || task.Count < 2))
                 {
-                    //OsmWriter.SaveNodesAsGeoJsonLine(task, osmDir + $"/Trips/{task[0].Id}-{task[^1].Id}.geojson", 5);
+                    OsmWriter.SaveNodesAsCsv(task, osmDir + $"/Trips/{task[0].Id}-{task[^1].Id}.csv", 5);
+                    OsmWriter.SaveNodesAsGeoJsonLine(task, osmDir + $"/GeoJson/{task[0].Id}-{task[^1].Id}.geojson", 5);
                     resultList.Add(task);
                 }
                 else
@@ -157,6 +161,131 @@ public class Util
         }
     }
 
+    public static void GenerateAllConsecutiveShapesAndSetToFeed(GtfsFeed feed, Dictionary<string, List<OsmShapeDto>> osmShapes)
+    {
+        var stopTimes = feed.StopTimesDictionary();
+        var result = new List<ShapePoint>();
+        var geoJsonResults = new List<List<OsmNode>>();
+        int keysDoNotExist = 0;
+        int keysExist = 0;
+        int shapeId = 0;
+        foreach (var trip in feed.Trips)
+        {
+            var tripStopOsmNodes = stopTimes[trip.Id].Select(e => e.Stop).ToList();
+            trip.ShapeId = (shapeId++).ToString();
+            int seq = 0;
+            for (int i = 1; i < tripStopOsmNodes.Count; i++)
+            {
+                var tempResult = new List<OsmNode>();
+                var key1 =  $"{tripStopOsmNodes[i-1].roadNode.Id}-{tripStopOsmNodes[i].roadNode.Id}";
+                var key2 = $"{tripStopOsmNodes[i].roadNode.Id}-{tripStopOsmNodes[i-1].roadNode.Id}";
+                if (osmShapes.ContainsKey(key1))
+                {
+                    foreach (var osmShapeDto in osmShapes[key1])
+                    {
+                        result.Add(new ShapePoint()
+                        {
+                            ShapeId = trip.ShapeId,
+                            Lat = osmShapeDto.Lat,
+                            Lon = osmShapeDto.Lon,
+                            DistTraveled = 0,
+                            Sequence = seq++
+                        });
+                        tempResult.Add(new OsmNode()
+                        {
+                            Id = -1,
+                            Lat = osmShapeDto.Lat,
+                            Lon = osmShapeDto.Lon,
+                        });
+                    }
+                }
+                else
+                {
+                    if (osmShapes.ContainsKey(key2))
+                    {
+                        for (int j = osmShapes[key2].Count - 1; j >= 0; j--)
+                        {
+                            var osmShapeDto = osmShapes[key2][j];
+                            result.Add(new ShapePoint()
+                            {
+                                ShapeId = trip.ShapeId,
+                                Lat = osmShapeDto.Lat,
+                                Lon = osmShapeDto.Lon,
+                                DistTraveled = 0,
+                                Sequence = seq++
+                            });
+                            tempResult.Add(new OsmNode()
+                            {
+                                Id = -1,
+                                Lat = osmShapeDto.Lat,
+                                Lon = osmShapeDto.Lon,
+                            });
+                        }
+                    }
+                    else
+                    {
+                        result.Add(new  ShapePoint()
+                        {
+                            ShapeId = trip.ShapeId,
+                            Lat = (float)tripStopOsmNodes[i-1].Lat,
+                            Lon = (float)tripStopOsmNodes[i-1].Lon,
+                            DistTraveled = 0,
+                            Sequence = seq++
+                        });
+                        tempResult.Add(new OsmNode()
+                        {
+                            Id = -1,
+                            Lat = tripStopOsmNodes[i-1].Lat,
+                            Lon = tripStopOsmNodes[i-1].Lon,
+                        });
+                        result.Add(new ShapePoint()
+                        {
+                            ShapeId = trip.ShapeId,
+                            Lat = (float)tripStopOsmNodes[i].Lat,
+                            Lon = (float)tripStopOsmNodes[i].Lon,
+                            DistTraveled = 0,
+                            Sequence = seq++
+                        });
+                        tempResult.Add(new OsmNode()
+                        {
+                            Id = -1,
+                            Lat = tripStopOsmNodes[i].Lat,
+                            Lon = tripStopOsmNodes[i].Lon,
+                        });
+                    }
+                }
+                geoJsonResults.Add(tempResult);
+                if (result[^1].ShapeId == result[^2].ShapeId && result[^1].Lat == result[^2].Lat &&
+                    result[^1].Lon == result[^2].Lon)
+                {
+                    result.RemoveAt(result.Count - 1);
+                }
+            }
+        }
+        Console.WriteLine($"{result.Count} stops found");
+        using (var writer = new StreamWriter("/Users/ferdi/Documents/GTFS Data/OSM/BY/Shapes/shapes.csv"))
+        using (var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        {
+            csvWriter.WriteRecords(result);
+        }
+        var uniqueRoutes = geoJsonResults
+            .Where(r => r.Count >= 2)
+            .DistinctBy(r =>
+            (
+                (Quantize(r[0].Lat), Quantize(r[0].Lon)),
+                (Quantize(r[^1].Lat), Quantize(r[^1].Lon))
+            ))
+            .ToList();
+
+
+        
+        OsmWriter.SaveRoutesAsGeoJsonLines(uniqueRoutes, "/Users/ferdi/Documents/GTFS Data/OSM/BY/Shapes/shapes.geojson");
+    }
+
+    static long Quantize(double value, double precision = 1e-6)
+        => (long)Math.Round(value / precision);
+
+    
     public static void BasicStreetRoute(GtfsFeed feed)
     {
         string path = "/Users/ferdi/Documents/GTFS Data/OSM/BY";
